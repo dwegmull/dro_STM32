@@ -1,0 +1,4 @@
+main.c:266:13:TimerCallback	0	static
+main.c:139:5:main	152	static
+main.c:178:6:drawDigit	24	static
+main.c:192:13:GUIThread	40	static
