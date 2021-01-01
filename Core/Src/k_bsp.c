@@ -192,12 +192,21 @@ void k_TouchUpdate(void)
     		else
     		{
     			// command key
-    			if((ts.touchX[0] < 185) && (currentState.entryMode == entryMode_notActive))
+    			if(ts.touchX[0] < 185)
     			{
-    				// Machine toggle
-    				currentState.currentMachine = 1 - currentState.currentMachine;
-    				drawAxes();
-    				drawCommands();
+    				if(currentState.entryMode == entryMode_notActive)
+    				{
+						// Machine toggle
+						currentState.currentMachine = 1 - currentState.currentMachine;
+						drawAxes();
+						drawCommands();
+    				}
+    				else
+    				{
+    					// Back space
+    					currentState.editString[strlen(currentState.editString) - 1] = 0;
+    					drawAxes();
+    				}
     			}
     			else
     			{

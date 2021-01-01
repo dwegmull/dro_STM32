@@ -50,4 +50,5 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+SW4STM32/STM32469I-DISCO_Demo/Debug/
 
