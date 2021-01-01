@@ -44,7 +44,7 @@
   */
 /* Includes ------------------------------------------------------------------*/
 #include "k_bsp.h"
-
+#include "main.h"
 /** @addtogroup CORE
   * @{
   */
@@ -92,6 +92,24 @@ __HAL_RCC_BKPSRAM_CLK_ENABLE();
   
 }
 
+extern currentState_T currentState;
+
+static void processDigit(char digit)
+{
+	uint8_t numberOfDigits = 0;
+	uint8_t stringOffset;
+	for(stringOffset = 0; stringOffset < strlen(currentState.editString); stringOffset++)
+	{
+		if(currentState.editString[stringOffset] > 0x20)
+		{
+			numberOfDigits++;
+		}
+	}
+	if(numberOfDigits < 6)
+	{
+		currentState.editString[strlen(currentState.editString)] = digit;
+	}
+}
 /**
   * @brief  Read the coordinate of the point touched and assign their
   *         value to the variables u32_TSXCoordinate and u32_TSYCoordinate
@@ -123,6 +141,155 @@ void k_TouchUpdate(void)
     //TS_State.Layer = SelLayer;
     if(ts.touchDetected) 
     {
+    	if(ts.touchX[0] < 550)
+    	{
+    		if((ts.touchY[0] < 345) && (currentState.entryMode == entryMode_notActive))
+    		{
+    			// axis selection
+    			if(ts.touchY[0] < 125)
+    			{
+    				// X axis
+    				currentState.currentAxis[currentState.currentMachine] = currentAxis_X;
+    				drawAxes();
+    			}
+    			else
+    			{
+    				if(currentState.currentMachine == currentMachine_lathe)
+    				{
+    					// Lathe: only two axes
+        				currentState.currentAxis[currentState.currentMachine] = currentAxis_Y;
+        				drawAxes();
+    				}
+    				else
+    				{
+    					// Mill: check between Y and Z
+    					if(ts.touchY[0] < 240)
+    					{
+            				currentState.currentAxis[currentState.currentMachine] = currentAxis_Y;
+            				drawAxes();
+    					}
+    					else
+    					{
+            				currentState.currentAxis[currentState.currentMachine] = currentAxis_Z;
+            				drawAxes();
+    					}
+    				}
+    			}
+    		}
+    		else
+    		{
+    			// command key
+    			if((ts.touchX[0] < 185) && (currentState.entryMode == entryMode_notActive))
+    			{
+    				// Machine toggle
+    				currentState.currentMachine = 1 - currentState.currentMachine;
+    				drawAxes();
+    			}
+    			else
+    			{
+    				if((ts.touchX[0] < 365) && (currentState.entryMode == entryMode_notActive))
+    				{
+    					// 1/2 function
+    				}
+    				else
+    				{
+    					if((ts.touchX[0] >= 365) && (currentState.entryMode == entryMode_active))
+    					{
+    						// Enter key
+    						currentState.entryMode = entryMode_notActive;
+    					}
+    				}
+    			}
+    		}
+    	}
+    	else
+    	{
+    		// Key pad
+    		currentState.entryMode = entryMode_active;
+    		if(ts.touchY[0] < 100)
+    		{
+    			//789
+    			if(ts.touchX[0] < 620)
+    			{
+    				processDigit('7');
+    			}
+    			else
+    			{
+    				if(ts.touchX[0] < 705)
+    				{
+        				processDigit('8');
+    				}
+    				else
+    				{
+        				processDigit('9');
+    				}
+    			}
+    		}
+    		else
+    		{
+    			if(ts.touchY[0] < 200)
+    			{
+    				//456
+        			if(ts.touchX[0] < 620)
+        			{
+        				processDigit('4');
+        			}
+        			else
+        			{
+        				if(ts.touchX[0] < 705)
+        				{
+            				processDigit('5');
+        				}
+        				else
+        				{
+            				processDigit('6');
+        				}
+        			}
+    			}
+    			else
+    			{
+    				if(ts.touchY[0] < 300)
+    				{
+    					//123
+    	    			if(ts.touchX[0] < 620)
+    	    			{
+    	    				processDigit('1');
+    	    			}
+    	    			else
+    	    			{
+    	    				if(ts.touchX[0] < 705)
+    	    				{
+    	        				processDigit('2');
+    	    				}
+    	    				else
+    	    				{
+    	        				processDigit('3');
+    	    				}
+    	    			}
+    				}
+    				else
+    				{
+    					//-0.
+    	    			if(ts.touchX[0] < 620)
+    	    			{
+    	    				//-
+    	    			}
+    	    			else
+    	    			{
+    	    				if(ts.touchX[0] < 705)
+    	    				{
+    	    					//0
+    	    				}
+    	    				else
+    	    				{
+    	    					//.
+    	    				}
+    	    			}
+    				}
+    			}
+    		}
+    		drawAxes();
+    	}
       TS_State.x = ts.touchX[0];
       if(I2C_Address == TS_I2C_ADDRESS)
       {

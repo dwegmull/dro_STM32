@@ -85,6 +85,36 @@
 #include <math.h>
    
 /* Exported types ------------------------------------------------------------*/
+ typedef enum
+ {
+ 	currentMachine_lathe = 0,
+ 	currentMachine_mill = 1
+ } currentMachine_T;
+
+ typedef enum
+ {
+ 	currentAxis_X = 0,
+ 	currentAxis_Y = 1,
+ 	currentAxis_Z = 2
+ } currentAxis_T;
+
+ typedef enum
+ {
+ 	entryMode_notActive = 0,
+ 	entryMode_active = 1
+ } entryMode_T;
+
+ typedef struct
+ {
+ 	currentMachine_T currentMachine;
+ 	currentAxis_T currentAxis[2];
+ 	entryMode_T entryMode;
+ 	int32_t axis[5];
+ 	int32_t offset[5];
+ 	int32_t prevOffset[5];
+ 	char editString[9];
+ } currentState_T;
+
 /* Exported variables --------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
 #ifdef INCLUDE_THIRD_PARTY_MODULE 
@@ -94,7 +124,7 @@
 #endif
 /* Exported macros -----------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */ 
-
+void drawAxes(void);
 #ifdef __cplusplus
 }
 #endif

@@ -96,27 +96,6 @@ static void SystemClock_Config(void);
 static void GUIThread(void const * argument);
 static void TimerCallback(void const *n);
 
-typedef enum
-{
-	currentMachine_lathe = 0,
-	currentMachine_mill = 1
-} currentMachine_T;
-
-typedef enum
-{
-	currentAxis_X = 0,
-	currentAxis_Y = 1,
-	currentAxis_Z = 2
-} currentAxis_T;
-
-typedef struct
-{
-	currentMachine_T currentMachine;
-	currentAxis_T currentAxis[2];
-	uint32_t axis[5];
-	uint32_t offset[5];
-	uint32_t prevOffset[5];
-} currentState_T;
 
 currentState_T currentState;
 osTimerId lcd_timer;
@@ -150,24 +129,22 @@ int main(void)
   /* Configure the system clock @ 180 Mhz */
   SystemClock_Config();
 
+  uint8_t i;
+  for(i = 0; i < 5; i++)
+  {
+	 	currentState.axis[i] = -123456;
+	 	currentState.offset[i] = 0;
+	 	currentState.prevOffset[i] = 0;
+  }
+  for(i = 0; i < 9; i++)
+  {
+	  currentState.editString[i] = 0;
+  }
   k_BspInit(); 
   
   /* Create GUI task */
   osThreadDef(GUI_Thread, GUIThread, osPriorityLow, 0, 2048);
   osThreadCreate (osThread(GUI_Thread), NULL); 
-  /* Add Modules*/
-#if 0
-  k_ModuleInit();
-  
-  /* Link modules */ 
-  k_ModuleAdd(&audio_player_board);       
-  k_ModuleAdd(&video_player_board);  
-  k_ModuleAdd(&games_board);
-  k_ModuleAdd(&audio_recorder_board);  
-  k_ModuleAdd(&gardening_control_board);   
-  k_ModuleAdd(&home_alarm_board); 
-  k_ModuleAdd(&settings_board);
-#endif
   /* Start scheduler */
   osKernelStart ();
 
@@ -175,11 +152,66 @@ int main(void)
   for( ;; );
 }
 
-void drawDigit(uint16_t x, uint16_t y, char digit)
+static void drawDigit(uint16_t x, uint16_t y, char digit)
 {
 	GUI_DrawRoundedRect(x - 10, y - 10, x + 70, y + 90, 5);
 	GUI_SetFont(GUI_FONT_D60X80);
 	GUI_DispCharAt(digit, x, y);
+}
+
+void drawAxes(void)
+{
+	GUI_ClearRect(0, 0, 530, 340);
+	GUI_SetPenSize(5);
+	GUI_DrawRoundedRect(5, currentState.currentAxis[currentState.currentMachine] * 115, 530, 100 + (currentState.currentAxis[currentState.currentMachine] * 115), 5);
+	GUI_SetFont(GUI_FONT_32B_ASCII);
+	GUI_DispStringAt("X: ", 10, 10);
+	GUI_SetFont(GUI_FONT_D60X80);
+	if((currentState.currentAxis[currentState.currentMachine] == currentAxis_X) && (currentState.entryMode == entryMode_active))
+	{
+		GUI_DispStringAt(currentState.editString, 45, 10);
+	}
+	else
+	{
+		GUI_GotoXY(45, 10);
+		GUI_DispSDecShift(currentState.axis[currentState.currentMachine * 2] + currentState.offset[currentState.currentMachine * 2], 8, 3);
+	}
+	GUI_SetFont(GUI_FONT_32B_ASCII);
+	GUI_DispStringAt("Y: ", 10, 125);
+	GUI_SetFont(GUI_FONT_D60X80);
+	if((currentState.currentAxis[currentState.currentMachine] == currentAxis_Y) && (currentState.entryMode == entryMode_active))
+	{
+		GUI_DispStringAt(currentState.editString, 45, 125);
+	}
+	else
+	{
+		GUI_GotoXY(45, 125);
+		GUI_DispSDecShift(currentState.axis[(currentState.currentMachine * 2) + 1] + currentState.offset[(currentState.currentMachine * 2) + 1], 8, 3);
+	}
+	GUI_SetFont(GUI_FONT_32B_ASCII);
+	if (currentState.currentMachine == currentMachine_mill)
+	{
+		GUI_DispStringAt("Z: ", 10, 240);
+		GUI_SetFont(GUI_FONT_D60X80);
+		if((currentState.currentAxis[currentState.currentMachine] == currentAxis_Z) && (currentState.entryMode == entryMode_active))
+		{
+			GUI_DispStringAt(currentState.editString, 45, 240);
+		}
+		else
+		{
+			GUI_GotoXY(45, 240);
+			GUI_DispSDecShift(currentState.axis[(currentState.currentMachine * 2) + 2] + currentState.offset[(currentState.currentMachine * 2) + 2], 8, 3);
+		}
+	}
+	else
+	{
+		GUI_ClearRect(10, 240, 530, 340);
+	}
+}
+
+void updateCurrentAxis(void)
+{
+
 }
 
 const char keypadChars[12] = {'7', '8', '9', '4', '5', '6', '1', '2', '3', '-', '0', '.'};
@@ -204,21 +236,7 @@ static void GUIThread(void const * argument)
 	//GUI_SetBkColor(GUI_WHITE);
 	GUI_Clear();
 
-	GUI_SetPenSize(5);
-	GUI_DrawRoundedRect(5, 0, 530, 100, 5);
-	GUI_SetFont(GUI_FONT_32B_ASCII);
-	GUI_DispStringAt("X: ", 10, 10);
-	GUI_SetFont(GUI_FONT_D60X80);
-	GUI_DispStringAt("+123.123", 45, 10);
-	GUI_SetFont(GUI_FONT_32B_ASCII);
-	GUI_DispStringAt("Y: ", 10, 125);
-	GUI_SetFont(GUI_FONT_D60X80);
-	GUI_DispStringAt("+123.123", 45, 125);
-	GUI_SetFont(GUI_FONT_32B_ASCII);
-	GUI_DispStringAt("Z: ", 10, 240);
-	GUI_SetFont(GUI_FONT_D60X80);
-	GUI_DispStringAt("+000.000", 45, 240);
-
+	drawAxes();
 	uint8_t keyCnt = 0;
 	uint8_t keyX = 0;
 	uint8_t keyY = 0;
