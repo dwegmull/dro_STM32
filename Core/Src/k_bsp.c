@@ -98,11 +98,24 @@ static void processDigit(char digit)
 {
 	uint8_t numberOfDigits = 0;
 	uint8_t stringOffset;
-	for(stringOffset = 0; stringOffset < strlen(currentState.editString); stringOffset++)
+	uint8_t numberOfDots = 0;
+	for(stringOffset = 0; stringOffset < 8; stringOffset++)
 	{
-		if(currentState.editString[stringOffset] > 0x20)
+		if((numberOfDots == 0 ) && (numberOfDigits == 3) && (currentState.editString[stringOffset] != '.'))
 		{
-			numberOfDigits++;
+			// we can't have more than three digits in a row: 123.123
+			return;
+		}
+		if(currentState.editString[stringOffset] == '.')
+		{
+			numberOfDots++;
+		}
+		else
+		{
+			if(currentState.editString[stringOffset] >= 0x30)
+			{
+				numberOfDigits++;
+			}
 		}
 	}
 	if(numberOfDigits < 6)
@@ -184,6 +197,7 @@ void k_TouchUpdate(void)
     				// Machine toggle
     				currentState.currentMachine = 1 - currentState.currentMachine;
     				drawAxes();
+    				drawCommands();
     			}
     			else
     			{
@@ -195,9 +209,63 @@ void k_TouchUpdate(void)
     				{
     					if((ts.touchX[0] >= 365) && (currentState.entryMode == entryMode_active))
     					{
+    						int8_t stringOffset;
+    						int8_t numberDecimals = 0;
+    						int32_t value = 0;
+    						int32_t multiplier = 1;
     						// Enter key
     						currentState.entryMode = entryMode_notActive;
+    						stringOffset = strlen(currentState.editString) - 1;
+    						do
+    						{
+    							if(currentState.editString[stringOffset] == '-')
+    							{
+    								value = -value;
+    							}
+    							else
+    							{
+    								if(currentState.editString[stringOffset] != '.')
+    								{
+    									// It's a digit.
+    									value += multiplier * (currentState.editString[stringOffset] - 0x30);
+    									multiplier *= 10;
+    									if(numberDecimals >= 0)
+    									{
+    										numberDecimals++;
+    									}
+    								}
+    								else
+    								{
+    									numberDecimals = -numberDecimals;
+    								}
+    							}
+    							stringOffset--;
+    						}
+    						while(stringOffset > -1);
+    						numberDecimals = -numberDecimals;
+    						switch(numberDecimals)
+    						{
+    							default:
+    								value *= 1000;
+    								break;
+    							case 1:
+    								value *= 100;
+    								break;
+    							case 2:
+    								value *= 10;
+    								break;
+    							case 3:
+    								break;
+    						}
+   							currentState.offset[currentState.currentAxis[currentState.currentMachine] + currentState.currentMachine * 2] = value - currentState.axis[currentState.currentAxis[currentState.currentMachine] + currentState.currentMachine * 2];
+    						for(stringOffset = 0; stringOffset < 9; stringOffset++)
+							{
+							  currentState.editString[stringOffset] = 0;
+							}
     					}
+    					currentState.entryMode = entryMode_notActive;
+    					drawAxes();
+    					drawCommands();
     				}
     			}
     		}
@@ -205,7 +273,11 @@ void k_TouchUpdate(void)
     	else
     	{
     		// Key pad
-    		currentState.entryMode = entryMode_active;
+    		if(currentState.entryMode != entryMode_active)
+			{
+        		currentState.entryMode = entryMode_active;
+    			drawCommands();
+			}
     		if(ts.touchY[0] < 100)
     		{
     			//789
@@ -273,16 +345,24 @@ void k_TouchUpdate(void)
     	    			if(ts.touchX[0] < 620)
     	    			{
     	    				//-
+    	    				if(strlen(currentState.editString) == 0)
+    	    				{
+    	    					// - can only be the leading character
+    	    					currentState.editString[0] = '-';
+    	    				}
     	    			}
     	    			else
     	    			{
     	    				if(ts.touchX[0] < 705)
     	    				{
-    	    					//0
+    	        				processDigit('0');
     	    				}
     	    				else
     	    				{
-    	    					//.
+    	    					if(0 == strstr(currentState.editString, "."))
+    	    					{
+    	    						currentState.editString[strlen(currentState.editString)] = '.';
+    	    					}
     	    				}
     	    			}
     				}
@@ -306,11 +386,11 @@ void k_TouchUpdate(void)
       {
         TS_State.y = ts.touchY[0]; 
       }
-      GUI_TOUCH_StoreStateEx(&TS_State);
+//      GUI_TOUCH_StoreStateEx(&TS_State);
     }
     else
     {
-      GUI_TOUCH_StoreStateEx(&TS_State);
+//      GUI_TOUCH_StoreStateEx(&TS_State);
       TS_State.x = 0;
       TS_State.y = 0;      
     }

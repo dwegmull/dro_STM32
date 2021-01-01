@@ -109,7 +109,7 @@
  	currentMachine_T currentMachine;
  	currentAxis_T currentAxis[2];
  	entryMode_T entryMode;
- 	int32_t axis[5];
+ 	volatile int32_t axis[5];
  	int32_t offset[5];
  	int32_t prevOffset[5];
  	char editString[9];
@@ -125,6 +125,7 @@
 /* Exported macros -----------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */ 
 void drawAxes(void);
+void drawCommands(void);
 #ifdef __cplusplus
 }
 #endif

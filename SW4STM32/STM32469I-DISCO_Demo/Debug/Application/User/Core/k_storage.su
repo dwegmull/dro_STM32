@@ -1,8 +1,0 @@
-k_storage.c:122:13:StorageThread	24	static
-k_storage.c:208:13:USBH_UserProcess	0	static
-k_storage.c:94:6:k_StorageInit	56	static
-k_storage.c:153:9:k_StorageGetStatus	0	static
-k_storage.c:163:10:k_StorageGetCapacity	0	static
-k_storage.c:181:10:k_StorageGetFree	16	static
-k_storage.c:261:6:k_GetExtOnly	16	static
-k_storage.c:288:5:k_GetData	568	static

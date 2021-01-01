@@ -152,11 +152,55 @@ int main(void)
   for( ;; );
 }
 
+const char keypadChars[12] = {'7', '8', '9', '4', '5', '6', '1', '2', '3', '-', '0', '.'};
+const char* commandKeysLathe[3] = {"M/L", 0, 0};
+const char* commandKeysMill[3] = {"M/L", "1/2", 0};
+const char* commandKeysEdit[3] = {"BSP", 0, "ENT"};
+
 static void drawDigit(uint16_t x, uint16_t y, char digit)
 {
 	GUI_DrawRoundedRect(x - 10, y - 10, x + 70, y + 90, 5);
 	GUI_SetFont(GUI_FONT_D60X80);
 	GUI_DispCharAt(digit, x, y);
+}
+
+void drawCommands(void)
+{
+	uint8_t commandCnt;
+	GUI_ClearRect(5, 345, 530, 445);
+	for(commandCnt = 0; commandCnt < 3; commandCnt++)
+	{
+		if(currentState.entryMode == entryMode_active)
+		{
+			if(commandKeysEdit[commandCnt])
+			{
+				GUI_DrawRoundedRect(5 + (commandCnt * 180), 345, 170 + (commandCnt * 180), 445, 5);
+				GUI_SetFont(GUI_FONT_32B_ASCII);
+				GUI_DispStringAt(commandKeysEdit[commandCnt], 10 + (commandCnt * 200), 360);
+			}
+		}
+		else
+		{
+			if(currentState.currentMachine == currentMachine_lathe)
+			{
+				if(commandKeysLathe[commandCnt])
+				{
+					GUI_DrawRoundedRect(5 + (commandCnt * 180), 345, 170 + (commandCnt * 180), 445, 5);
+					GUI_SetFont(GUI_FONT_32B_ASCII);
+					GUI_DispStringAt(commandKeysLathe[commandCnt], 10 + (commandCnt * 200), 360);
+				}
+			}
+			else
+			{
+				if(commandKeysMill[commandCnt])
+				{
+					GUI_DrawRoundedRect(5 + (commandCnt * 180), 345, 170 + (commandCnt * 180), 445, 5);
+					GUI_SetFont(GUI_FONT_32B_ASCII);
+					GUI_DispStringAt(commandKeysMill[commandCnt], 10 + (commandCnt * 200), 360);
+				}
+			}
+		}
+	}
 }
 
 void drawAxes(void)
@@ -209,13 +253,7 @@ void drawAxes(void)
 	}
 }
 
-void updateCurrentAxis(void)
-{
 
-}
-
-const char keypadChars[12] = {'7', '8', '9', '4', '5', '6', '1', '2', '3', '-', '0', '.'};
-const char* commandKeys[3] = {"M/L", "1/2", "ENT"};
 /**
   * @brief  Start task
   * @param  argument: pointer that is passed to the thread function as start argument.
@@ -248,16 +286,7 @@ static void GUIThread(void const * argument)
 			keyCnt++;
 		}
 	}
-	for(keyX = 0; keyX < 3; keyX++)
-	{
-		GUI_DrawRoundedRect(5 + (keyX * 180), 345, 170 + (keyX * 180), 445, 5);
-		GUI_SetFont(GUI_FONT_32B_ASCII);
-		GUI_DispStringAt(commandKeys[keyX], 10 + (keyX * 200), 360);
-	}
-	/* Set General Graphical proprieties */
-  //k_SetGuiProfile();
-
-  //k_StartUp();
+	drawCommands();
 
   /* Create Touch screen Timer */
   osTimerDef(TS_Timer, TimerCallback);
