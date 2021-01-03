@@ -83,7 +83,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-   
+
+#define QUAD_A0_Pin GPIO_PIN_10
+#define QUAD_A0_GPIO_Port GPIOG
+#define QUAD_SSN_Pin GPIO_PIN_2
+#define QUAD_SSN_GPIO_Port GPIOA
+#define QUAD_A2_Pin GPIO_PIN_6
+#define QUAD_A2_GPIO_Port GPIOH
+#define QUAD_A1_Pin GPIO_PIN_7
+#define QUAD_A1_GPIO_Port GPIOA
+
 /* Exported types ------------------------------------------------------------*/
  typedef enum
  {

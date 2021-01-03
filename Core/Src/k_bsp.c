@@ -45,6 +45,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "k_bsp.h"
 #include "main.h"
+#include "quadrature_decoder_LS7366R.h"
 /** @addtogroup CORE
   * @{
   */
@@ -134,7 +135,7 @@ void k_TouchUpdate(void)
   static GUI_PID_STATE TS_State = {0, 0, 0, 0};
   __IO TS_StateTypeDef  ts;
   uint16_t xDiff, yDiff;
-  
+  uint8_t axesRefreshNeeded = 0;
   BSP_TS_GetState((TS_StateTypeDef *)&ts);
 
   if((ts.touchX[0] >= LCD_GetXSize()) ||(ts.touchY[0] >= LCD_GetYSize()) ) 
@@ -145,10 +146,45 @@ void k_TouchUpdate(void)
 
   xDiff = (TS_State.x > ts.touchX[0]) ? (TS_State.x - ts.touchX[0]) : (ts.touchX[0] - TS_State.x);
   yDiff = (TS_State.y > ts.touchY[0]) ? (TS_State.y - ts.touchY[0]) : (ts.touchY[0] - TS_State.y);
-  
-  if((TS_State.Pressed != ts.touchDetected ) ||
-     (xDiff > 20 )||
-       (yDiff > 20))
+  if(currentState.currentMachine == currentMachine_lathe)
+  {
+	  int32_t tempCount;
+	  tempCount = quadDecode_getCounter(3);
+	  if(tempCount != currentState.axis[3])
+	  {
+		  currentState.axis[3] = tempCount;
+		  axesRefreshNeeded = 1;
+	  }
+	  tempCount = quadDecode_getCounter(4);
+	  if(tempCount != currentState.axis[4])
+	  {
+		  currentState.axis[4] = tempCount;
+		  axesRefreshNeeded = 1;
+	  }
+  }
+  else
+  {
+	  int32_t tempCount;
+	  tempCount = quadDecode_getCounter(0);
+	  if(tempCount != currentState.axis[0])
+	  {
+		  currentState.axis[0] = tempCount;
+		  axesRefreshNeeded = 1;
+	  }
+	  tempCount = quadDecode_getCounter(1);
+	  if(tempCount != currentState.axis[1])
+	  {
+		  currentState.axis[1] = tempCount;
+		  axesRefreshNeeded = 1;
+	  }
+	  tempCount = quadDecode_getCounter(2);
+	  if(tempCount != currentState.axis[2])
+	  {
+		  currentState.axis[2] = tempCount;
+		  axesRefreshNeeded = 1;
+	  }
+  }
+  if((TS_State.Pressed != ts.touchDetected ) || (xDiff > 20 ) || (yDiff > 20))
   {
     TS_State.Pressed = ts.touchDetected;
     //TS_State.Layer = SelLayer;
@@ -163,7 +199,7 @@ void k_TouchUpdate(void)
     			{
     				// X axis
     				currentState.currentAxis[currentState.currentMachine] = currentAxis_X;
-    				drawAxes();
+    				axesRefreshNeeded = 1;
     			}
     			else
     			{
@@ -171,7 +207,7 @@ void k_TouchUpdate(void)
     				{
     					// Lathe: only two axes
         				currentState.currentAxis[currentState.currentMachine] = currentAxis_Y;
-        				drawAxes();
+        				axesRefreshNeeded = 1;
     				}
     				else
     				{
@@ -179,12 +215,12 @@ void k_TouchUpdate(void)
     					if(ts.touchY[0] < 240)
     					{
             				currentState.currentAxis[currentState.currentMachine] = currentAxis_Y;
-            				drawAxes();
+            				axesRefreshNeeded = 1;
     					}
     					else
     					{
             				currentState.currentAxis[currentState.currentMachine] = currentAxis_Z;
-            				drawAxes();
+            				axesRefreshNeeded = 1;
     					}
     				}
     			}
@@ -198,14 +234,14 @@ void k_TouchUpdate(void)
     				{
 						// Machine toggle
 						currentState.currentMachine = 1 - currentState.currentMachine;
-						drawAxes();
+						axesRefreshNeeded = 1;
 						drawCommands();
     				}
     				else
     				{
     					// Back space
     					currentState.editString[strlen(currentState.editString) - 1] = 0;
-    					drawAxes();
+    					axesRefreshNeeded = 1;
     				}
     			}
     			else
@@ -273,7 +309,7 @@ void k_TouchUpdate(void)
 							}
     					}
     					currentState.entryMode = entryMode_notActive;
-    					drawAxes();
+    					axesRefreshNeeded = 1;
     					drawCommands();
     				}
     			}
@@ -287,7 +323,7 @@ void k_TouchUpdate(void)
         		currentState.entryMode = entryMode_active;
     			drawCommands();
 			}
-    		if(ts.touchY[0] < 100)
+    		if(ts.touchY[0] < 115)
     		{
     			//789
     			if(ts.touchX[0] < 620)
@@ -308,7 +344,7 @@ void k_TouchUpdate(void)
     		}
     		else
     		{
-    			if(ts.touchY[0] < 200)
+    			if(ts.touchY[0] < 230)
     			{
     				//456
         			if(ts.touchX[0] < 620)
@@ -329,7 +365,7 @@ void k_TouchUpdate(void)
     			}
     			else
     			{
-    				if(ts.touchY[0] < 300)
+    				if(ts.touchY[0] < 345)
     				{
     					//123
     	    			if(ts.touchX[0] < 620)
@@ -377,7 +413,7 @@ void k_TouchUpdate(void)
     				}
     			}
     		}
-    		drawAxes();
+    		axesRefreshNeeded = 1;
     	}
       TS_State.x = ts.touchX[0];
       if(I2C_Address == TS_I2C_ADDRESS)
@@ -403,6 +439,10 @@ void k_TouchUpdate(void)
       TS_State.x = 0;
       TS_State.y = 0;      
     }
+  }
+  if(axesRefreshNeeded == 1)
+  {
+	  drawAxes();
   }
 }
 
