@@ -96,8 +96,8 @@
 /* Exported types ------------------------------------------------------------*/
  typedef enum
  {
- 	currentMachine_lathe = 0,
- 	currentMachine_mill = 1
+	currentMachine_mill = 0,
+ 	currentMachine_lathe = 1,
  } currentMachine_T;
 
  typedef enum
@@ -118,10 +118,10 @@
  	currentMachine_T currentMachine;
  	currentAxis_T currentAxis[2];
  	entryMode_T entryMode;
- 	volatile int32_t axis[5];
+ 	int32_t axis[5];
  	int32_t offset[5];
- 	int32_t prevOffset[5];
  	char editString[9];
+ 	uint8_t direction[5];
  } currentState_T;
 
 /* Exported variables --------------------------------------------------------*/
@@ -135,6 +135,7 @@
 /* Exported functions ------------------------------------------------------- */ 
 void drawAxes(void);
 void drawCommands(void);
+void drawKeypad(GUI_COLOR color);
 #ifdef __cplusplus
 }
 #endif

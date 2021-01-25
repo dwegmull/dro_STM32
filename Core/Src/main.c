@@ -134,9 +134,9 @@ int main(void)
   uint8_t i;
   for(i = 0; i < 5; i++)
   {
-	 	currentState.axis[i] = -123456;
+	 	currentState.axis[i] = 0;
 	 	currentState.offset[i] = 0;
-	 	currentState.prevOffset[i] = 0;
+	 	currentState.direction[i] = 0;
   }
   for(i = 0; i < 9; i++)
   {
@@ -211,7 +211,9 @@ void drawAxes(void)
 {
 	GUI_ClearRect(0, 0, 530, 340);
 	GUI_SetPenSize(5);
+	GUI_SetColor(GUI_BLUE);
 	GUI_DrawRoundedRect(5, currentState.currentAxis[currentState.currentMachine] * 115, 530, 100 + (currentState.currentAxis[currentState.currentMachine] * 115), 5);
+	GUI_SetColor(GUI_WHITE);
 	GUI_SetFont(GUI_FONT_32B_ASCII);
 	GUI_DispStringAt("X: ", 10, 10);
 	GUI_SetFont(GUI_FONT_D60X80);
@@ -222,7 +224,7 @@ void drawAxes(void)
 	else
 	{
 		GUI_GotoXY(45, 10);
-		GUI_DispSDecShift(currentState.axis[currentState.currentMachine * 2] + currentState.offset[currentState.currentMachine * 2], 8, 3);
+		GUI_DispSDecShift(currentState.axis[currentState.currentMachine * 3] + currentState.offset[currentState.currentMachine * 3], 8, 3);
 	}
 	GUI_SetFont(GUI_FONT_32B_ASCII);
 	GUI_DispStringAt("Y: ", 10, 125);
@@ -233,8 +235,13 @@ void drawAxes(void)
 	}
 	else
 	{
+		int32_t multiplier = 1;
+		if(currentState.currentMachine == currentMachine_lathe)
+		{
+			multiplier = 2; // Lathe cross slide sensor measures the radius, but we want to see the diameter.
+		}
 		GUI_GotoXY(45, 125);
-		GUI_DispSDecShift(currentState.axis[(currentState.currentMachine * 2) + 1] + currentState.offset[(currentState.currentMachine * 2) + 1], 8, 3);
+		GUI_DispSDecShift((currentState.axis[(currentState.currentMachine * 3) + 1] + currentState.offset[(currentState.currentMachine * 3) + 1]) * multiplier, 8, 3);
 	}
 	GUI_SetFont(GUI_FONT_32B_ASCII);
 	if (currentState.currentMachine == currentMachine_mill)
@@ -248,7 +255,7 @@ void drawAxes(void)
 		else
 		{
 			GUI_GotoXY(45, 240);
-			GUI_DispSDecShift(currentState.axis[(currentState.currentMachine * 2) + 2] + currentState.offset[(currentState.currentMachine * 2) + 2], 8, 3);
+			GUI_DispSDecShift(currentState.axis[(currentState.currentMachine * 3) + 2] + currentState.offset[(currentState.currentMachine * 3) + 2], 8, 3);
 		}
 	}
 	else
@@ -257,6 +264,23 @@ void drawAxes(void)
 	}
 }
 
+void drawKeypad(GUI_COLOR color)
+{
+	GUI_SetColor(color);
+	uint8_t keyCnt = 0;
+	uint8_t keyX = 0;
+	uint8_t keyY = 0;
+	GUI_ClearRect(550, 0, 799, 479);
+	for(keyY = 0; keyY < 4; keyY++)
+	{
+		for(keyX = 0; keyX < 3; keyX++)
+		{
+			drawDigit(550 + (keyX * 85), 10 + (keyY * 115), keypadChars[keyCnt]);
+			keyCnt++;
+		}
+	}
+	GUI_SetColor(GUI_WHITE);
+}
 
 /**
   * @brief  Start task
@@ -279,17 +303,7 @@ static void GUIThread(void const * argument)
 	GUI_Clear();
 
 	drawAxes();
-	uint8_t keyCnt = 0;
-	uint8_t keyX = 0;
-	uint8_t keyY = 0;
-	for(keyY = 0; keyY < 4; keyY++)
-	{
-		for(keyX = 0; keyX < 3; keyX++)
-		{
-			drawDigit(550 + (keyX * 85), 10 + (keyY * 115), keypadChars[keyCnt]);
-			keyCnt++;
-		}
-	}
+	drawKeypad(GUI_WHITE);
 	drawCommands();
 
   /* Create Touch screen Timer */

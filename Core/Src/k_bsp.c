@@ -61,6 +61,7 @@ extern uint8_t  I2C_Address;
 TS_StateTypeDef  TS_State = {0};
 /* Private typedef -----------------------------------------------------------*/
 /* Private defines -----------------------------------------------------------*/
+#define HYST 1
 /* Private macros ------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
@@ -124,6 +125,53 @@ static void processDigit(char digit)
 		currentState.editString[strlen(currentState.editString)] = digit;
 	}
 }
+
+static uint8_t hysteresis(uint8_t axis, int32_t newVal)
+{
+	uint8_t returnVal = 0;
+	if(newVal != currentState.axis[axis])
+	{
+	  if(newVal > currentState.axis[axis])
+	  {
+		  if(currentState.direction[axis] == 0)
+		  {
+			  // Change of direction: check the hysteresis
+			  if((newVal - HYST) > currentState.axis[axis])
+			  {
+				  currentState.axis[axis] = newVal;
+				  returnVal = 1;
+				  currentState.direction[axis] = 1;
+			  }
+		  }
+		  else
+		  {
+			  // Same direction: always report
+			  currentState.axis[axis] = newVal;
+			  returnVal = 1;
+		  }
+	  }
+	  else
+	  {
+		  if(currentState.direction[3] == 1)
+		  {
+			  // Change of direction: check the hysteresis
+			  if((currentState.axis[axis] - HYST) < newVal)
+			  {
+				  currentState.axis[axis] = newVal;
+				  returnVal = 1;
+				  currentState.direction[axis] = 0;
+			  }
+		  }
+		  else
+		  {
+			  // Same direction: always report
+			  currentState.axis[axis] = newVal;
+			  returnVal = 1;
+		  }
+	  }
+	}
+	return returnVal;
+}
 /**
   * @brief  Read the coordinate of the point touched and assign their
   *         value to the variables u32_TSXCoordinate and u32_TSYCoordinate
@@ -150,39 +198,19 @@ void k_TouchUpdate(void)
   {
 	  int32_t tempCount;
 	  tempCount = quadDecode_getCounter(3);
-	  if(tempCount != currentState.axis[3])
-	  {
-		  currentState.axis[3] = tempCount;
-		  axesRefreshNeeded = 1;
-	  }
+	  axesRefreshNeeded += hysteresis(3, tempCount);
 	  tempCount = quadDecode_getCounter(4);
-	  if(tempCount != currentState.axis[4])
-	  {
-		  currentState.axis[4] = tempCount;
-		  axesRefreshNeeded = 1;
-	  }
+	  axesRefreshNeeded += hysteresis(4, tempCount);
   }
   else
   {
 	  int32_t tempCount;
 	  tempCount = quadDecode_getCounter(0);
-	  if(tempCount != currentState.axis[0])
-	  {
-		  currentState.axis[0] = tempCount;
-		  axesRefreshNeeded = 1;
-	  }
+	  axesRefreshNeeded += hysteresis(0, tempCount);
 	  tempCount = quadDecode_getCounter(1);
-	  if(tempCount != currentState.axis[1])
-	  {
-		  currentState.axis[1] = tempCount;
-		  axesRefreshNeeded = 1;
-	  }
+	  axesRefreshNeeded += hysteresis(1, tempCount);
 	  tempCount = quadDecode_getCounter(2);
-	  if(tempCount != currentState.axis[2])
-	  {
-		  currentState.axis[2] = tempCount;
-		  axesRefreshNeeded = 1;
-	  }
+	  axesRefreshNeeded += hysteresis(2, tempCount);
   }
   if((TS_State.Pressed != ts.touchDetected ) || (xDiff > 20 ) || (yDiff > 20))
   {
@@ -246,9 +274,13 @@ void k_TouchUpdate(void)
     			}
     			else
     			{
-    				if((ts.touchX[0] < 365) && (currentState.entryMode == entryMode_notActive))
+    				if((ts.touchX[0] < 365) && (currentState.entryMode == entryMode_notActive) && (currentState.currentMachine == currentMachine_mill))
     				{
     					// 1/2 function
+    					int32_t dv = currentState.axis[currentState.currentAxis[currentState.currentMachine]] + currentState.offset[currentState.currentAxis[currentState.currentMachine]];
+    					dv = dv /2;
+    					currentState.offset[currentState.currentAxis[currentState.currentMachine]] = dv - currentState.axis[currentState.currentAxis[currentState.currentMachine]];
+    					axesRefreshNeeded = 1;
     				}
     				else
     				{
@@ -260,55 +292,64 @@ void k_TouchUpdate(void)
     						int32_t multiplier = 1;
     						// Enter key
     						currentState.entryMode = entryMode_notActive;
-    						stringOffset = strlen(currentState.editString) - 1;
-    						do
+    						if(strlen(currentState.editString) > 0)
     						{
-    							if(currentState.editString[stringOffset] == '-')
-    							{
-    								value = -value;
-    							}
-    							else
-    							{
-    								if(currentState.editString[stringOffset] != '.')
-    								{
-    									// It's a digit.
-    									value += multiplier * (currentState.editString[stringOffset] - 0x30);
-    									multiplier *= 10;
-    									if(numberDecimals >= 0)
-    									{
-    										numberDecimals++;
-    									}
-    								}
-    								else
-    								{
-    									numberDecimals = -numberDecimals;
-    								}
-    							}
-    							stringOffset--;
+								stringOffset = strlen(currentState.editString) - 1;
+								do
+								{
+									if(currentState.editString[stringOffset] == '-')
+									{
+										value = -value;
+									}
+									else
+									{
+										if(currentState.editString[stringOffset] != '.')
+										{
+											// It's a digit.
+											value += multiplier * (currentState.editString[stringOffset] - 0x30);
+											multiplier *= 10;
+											if(numberDecimals >= 0)
+											{
+												numberDecimals++;
+											}
+										}
+										else
+										{
+											numberDecimals = -numberDecimals;
+										}
+									}
+									stringOffset--;
+								}
+								while(stringOffset > -1);
+								numberDecimals = -numberDecimals;
+								switch(numberDecimals)
+								{
+									default:
+										value *= 1000;
+										break;
+									case 1:
+										value *= 100;
+										break;
+									case 2:
+										value *= 10;
+										break;
+									case 3:
+										break;
+								}
     						}
-    						while(stringOffset > -1);
-    						numberDecimals = -numberDecimals;
-    						switch(numberDecimals)
+    						if((currentState.currentMachine == currentMachine_lathe) && (currentState.currentAxis[currentState.currentMachine] == currentAxis_Y))
     						{
-    							default:
-    								value *= 1000;
-    								break;
-    							case 1:
-    								value *= 100;
-    								break;
-    							case 2:
-    								value *= 10;
-    								break;
-    							case 3:
-    								break;
+    							// Lathe Y axis: we enter a diameter, but the data is stored internally as a radius, to match the sensor scale.
+    							value = value / 2;
     						}
-   							currentState.offset[currentState.currentAxis[currentState.currentMachine] + currentState.currentMachine * 2] = value - currentState.axis[currentState.currentAxis[currentState.currentMachine] + currentState.currentMachine * 2];
+   							currentState.offset[currentState.currentAxis[currentState.currentMachine] + currentState.currentMachine * 3] = value - currentState.axis[currentState.currentAxis[currentState.currentMachine] + currentState.currentMachine * 3];
     						for(stringOffset = 0; stringOffset < 9; stringOffset++)
 							{
 							  currentState.editString[stringOffset] = 0;
 							}
     					}
     					currentState.entryMode = entryMode_notActive;
+						drawKeypad(GUI_WHITE);
     					axesRefreshNeeded = 1;
     					drawCommands();
     				}
@@ -321,6 +362,7 @@ void k_TouchUpdate(void)
     		if(currentState.entryMode != entryMode_active)
 			{
         		currentState.entryMode = entryMode_active;
+				drawKeypad(GUI_RED);
     			drawCommands();
 			}
     		if(ts.touchY[0] < 115)
