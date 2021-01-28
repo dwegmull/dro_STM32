@@ -152,10 +152,10 @@ static uint8_t hysteresis(uint8_t axis, int32_t newVal)
 	  }
 	  else
 	  {
-		  if(currentState.direction[3] == 1)
+		  if(currentState.direction[axis] == 1)
 		  {
 			  // Change of direction: check the hysteresis
-			  if((currentState.axis[axis] - HYST) < newVal)
+			  if((newVal + HYST) < currentState.axis[axis])
 			  {
 				  currentState.axis[axis] = newVal;
 				  returnVal = 1;
@@ -482,7 +482,7 @@ void k_TouchUpdate(void)
       TS_State.y = 0;      
     }
   }
-  if(axesRefreshNeeded == 1)
+  if(axesRefreshNeeded != 0)
   {
 	  drawAxes();
   }
