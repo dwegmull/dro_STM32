@@ -113,6 +113,16 @@
  	entryMode_active = 1
  } entryMode_T;
 
+ typedef enum
+ {
+	 axisMillX = 0,
+	 axisMillY = 1,
+	 axisMillZ = 2,
+	 axisLatheX = 3,
+	 axisLatheY = 4,
+	 allAxes = 5,
+ } allAxes_T;
+
  typedef struct
  {
  	currentMachine_T currentMachine;
@@ -133,7 +143,7 @@
 #endif
 /* Exported macros -----------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */ 
-void drawAxes(void);
+void drawAxes(allAxes_T axesToUpdate);
 void drawCommands(void);
 void drawKeypad(GUI_COLOR color);
 #ifdef __cplusplus

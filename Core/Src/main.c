@@ -207,60 +207,93 @@ void drawCommands(void)
 	}
 }
 
-void drawAxes(void)
+void drawAxes(uint8_t axesToRefresh)
 {
-	GUI_ClearRect(0, 0, 530, 340);
+	if(axesToRefresh & (1 << allAxes))
+	{
+		GUI_ClearRect(0, 0, 530, 340);
+	}
 	GUI_SetPenSize(5);
-	GUI_SetColor(GUI_BLUE);
-	GUI_DrawRoundedRect(5, currentState.currentAxis[currentState.currentMachine] * 115, 530, 100 + (currentState.currentAxis[currentState.currentMachine] * 115), 5);
+	if((axesToRefresh & (1 << currentState.currentAxis[currentState.currentMachine])) || (axesToRefresh & (1 << allAxes)))
+	{
+		GUI_SetColor(GUI_BLUE);
+		GUI_DrawRoundedRect(5, currentState.currentAxis[currentState.currentMachine] * 115, 530, 100 + (currentState.currentAxis[currentState.currentMachine] * 115), 5);
+	}
 	GUI_SetColor(GUI_WHITE);
-	GUI_SetFont(GUI_FONT_32B_ASCII);
-	GUI_DispStringAt("X: ", 10, 10);
-	GUI_SetFont(GUI_FONT_D60X80);
-	if((currentState.currentAxis[currentState.currentMachine] == currentAxis_X) && (currentState.entryMode == entryMode_active))
+	if(axesToRefresh & (1 << allAxes))
 	{
-		GUI_DispStringAt(currentState.editString, 45, 10);
+		GUI_SetFont(GUI_FONT_32B_ASCII);
+		GUI_DispStringAt("X: ", 10, 10);
 	}
-	else
+	if((axesToRefresh & (1 << ((currentState.currentMachine * 3) + currentAxis_X))) || (axesToRefresh & (1 << allAxes)))
 	{
-		GUI_GotoXY(45, 10);
-		GUI_DispSDecShift(currentState.axis[currentState.currentMachine * 3] + currentState.offset[currentState.currentMachine * 3], 8, 3);
-	}
-	GUI_SetFont(GUI_FONT_32B_ASCII);
-	GUI_DispStringAt("Y: ", 10, 125);
-	GUI_SetFont(GUI_FONT_D60X80);
-	if((currentState.currentAxis[currentState.currentMachine] == currentAxis_Y) && (currentState.entryMode == entryMode_active))
-	{
-		GUI_DispStringAt(currentState.editString, 45, 125);
-	}
-	else
-	{
-		int32_t multiplier = 1;
-		if(currentState.currentMachine == currentMachine_lathe)
+		if((currentState.currentAxis[currentState.currentMachine] == currentAxis_X) && (currentState.entryMode == entryMode_active))
 		{
-			multiplier = 2; // Lathe cross slide sensor measures the radius, but we want to see the diameter.
-		}
-		GUI_GotoXY(45, 125);
-		GUI_DispSDecShift((currentState.axis[(currentState.currentMachine * 3) + 1] + currentState.offset[(currentState.currentMachine * 3) + 1]) * multiplier, 8, 3);
-	}
-	GUI_SetFont(GUI_FONT_32B_ASCII);
-	if (currentState.currentMachine == currentMachine_mill)
-	{
-		GUI_DispStringAt("Z: ", 10, 240);
-		GUI_SetFont(GUI_FONT_D60X80);
-		if((currentState.currentAxis[currentState.currentMachine] == currentAxis_Z) && (currentState.entryMode == entryMode_active))
-		{
-			GUI_DispStringAt(currentState.editString, 45, 240);
+			GUI_SetFont(GUI_FONT_32B_ASCII);
+			GUI_DispStringAt("X: ", 10, 10);
+			GUI_SetFont(GUI_FONT_D60X80);
+			GUI_DispStringAt(currentState.editString, 45, 10);
 		}
 		else
 		{
-			GUI_GotoXY(45, 240);
-			GUI_DispSDecShift(currentState.axis[(currentState.currentMachine * 3) + 2] + currentState.offset[(currentState.currentMachine * 3) + 2], 8, 3);
+			GUI_SetFont(GUI_FONT_D60X80);
+			GUI_GotoXY(45, 10);
+			GUI_DispSDecShift(currentState.axis[currentState.currentMachine * 3] + currentState.offset[currentState.currentMachine * 3], 8, 3);
 		}
 	}
-	else
+	if(axesToRefresh & (1 << allAxes))
 	{
-		GUI_ClearRect(10, 240, 530, 340);
+		GUI_SetFont(GUI_FONT_32B_ASCII);
+		GUI_DispStringAt("Y: ", 10, 125);
+	}
+	if((axesToRefresh & (1 << ((currentState.currentMachine * 3) + currentAxis_Y))) || (axesToRefresh & (1 << allAxes)))
+	{
+		if((currentState.currentAxis[currentState.currentMachine] == currentAxis_Y) && (currentState.entryMode == entryMode_active))
+		{
+			GUI_SetFont(GUI_FONT_32B_ASCII);
+			GUI_DispStringAt("Y: ", 10, 125);
+			GUI_SetFont(GUI_FONT_D60X80);
+			GUI_DispStringAt(currentState.editString, 45, 125);
+		}
+		else
+		{
+			int32_t multiplier = 1;
+			if(currentState.currentMachine == currentMachine_lathe)
+			{
+				multiplier = 2; // Lathe cross slide sensor measures the radius, but we want to see the diameter.
+			}
+			GUI_SetFont(GUI_FONT_D60X80);
+			GUI_GotoXY(45, 125);
+			GUI_DispSDecShift((currentState.axis[(currentState.currentMachine * 3) + 1] + currentState.offset[(currentState.currentMachine * 3) + 1]) * multiplier, 8, 3);
+		}
+	}
+	if((axesToRefresh & (1 << ((currentState.currentMachine * 3) + currentAxis_Z))) || (axesToRefresh & (1 << allAxes)))
+	{
+		if (currentState.currentMachine == currentMachine_mill)
+		{
+			if(axesToRefresh & (1 << allAxes))
+			{
+				GUI_SetFont(GUI_FONT_32B_ASCII);
+				GUI_DispStringAt("Z: ", 10, 240);
+			}
+			if((currentState.currentAxis[currentState.currentMachine] == currentAxis_Z) && (currentState.entryMode == entryMode_active))
+			{
+				GUI_SetFont(GUI_FONT_32B_ASCII);
+				GUI_DispStringAt("Z: ", 10, 240);
+				GUI_SetFont(GUI_FONT_D60X80);
+				GUI_DispStringAt(currentState.editString, 45, 240);
+			}
+			else
+			{
+				GUI_SetFont(GUI_FONT_D60X80);
+				GUI_GotoXY(45, 240);
+				GUI_DispSDecShift(currentState.axis[(currentState.currentMachine * 3) + 2] + currentState.offset[(currentState.currentMachine * 3) + 2], 8, 3);
+			}
+		}
+		else
+		{
+			GUI_ClearRect(10, 240, 530, 340);
+		}
 	}
 }
 
@@ -302,7 +335,7 @@ static void GUIThread(void const * argument)
 	//GUI_SetBkColor(GUI_WHITE);
 	GUI_Clear();
 
-	drawAxes();
+	drawAxes(1 << allAxes);
 	drawKeypad(GUI_WHITE);
 	drawCommands();
 

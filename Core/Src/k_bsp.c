@@ -139,7 +139,7 @@ static uint8_t hysteresis(uint8_t axis, int32_t newVal)
 			  if((newVal - HYST) > currentState.axis[axis])
 			  {
 				  currentState.axis[axis] = newVal;
-				  returnVal = 1;
+				  returnVal = 1 << axis;
 				  currentState.direction[axis] = 1;
 			  }
 		  }
@@ -147,7 +147,7 @@ static uint8_t hysteresis(uint8_t axis, int32_t newVal)
 		  {
 			  // Same direction: always report
 			  currentState.axis[axis] = newVal;
-			  returnVal = 1;
+			  returnVal = 1 << axis;
 		  }
 	  }
 	  else
@@ -158,7 +158,7 @@ static uint8_t hysteresis(uint8_t axis, int32_t newVal)
 			  if((newVal + HYST) < currentState.axis[axis])
 			  {
 				  currentState.axis[axis] = newVal;
-				  returnVal = 1;
+				  returnVal = 1 << axis;
 				  currentState.direction[axis] = 0;
 			  }
 		  }
@@ -166,7 +166,7 @@ static uint8_t hysteresis(uint8_t axis, int32_t newVal)
 		  {
 			  // Same direction: always report
 			  currentState.axis[axis] = newVal;
-			  returnVal = 1;
+			  returnVal = 1 << axis;
 		  }
 	  }
 	}
@@ -198,19 +198,19 @@ void k_TouchUpdate(void)
   {
 	  int32_t tempCount;
 	  tempCount = quadDecode_getCounter(3);
-	  axesRefreshNeeded += hysteresis(3, tempCount);
+	  axesRefreshNeeded |= hysteresis(3, tempCount);
 	  tempCount = quadDecode_getCounter(4);
-	  axesRefreshNeeded += hysteresis(4, tempCount);
+	  axesRefreshNeeded |= hysteresis(4, tempCount);
   }
   else
   {
 	  int32_t tempCount;
 	  tempCount = quadDecode_getCounter(0);
-	  axesRefreshNeeded += hysteresis(0, tempCount);
+	  axesRefreshNeeded |= hysteresis(0, tempCount);
 	  tempCount = quadDecode_getCounter(1);
-	  axesRefreshNeeded += hysteresis(1, tempCount);
+	  axesRefreshNeeded |= hysteresis(1, tempCount);
 	  tempCount = quadDecode_getCounter(2);
-	  axesRefreshNeeded += hysteresis(2, tempCount);
+	  axesRefreshNeeded |= hysteresis(2, tempCount);
   }
   if((TS_State.Pressed != ts.touchDetected ) || (xDiff > 20 ) || (yDiff > 20))
   {
@@ -227,7 +227,7 @@ void k_TouchUpdate(void)
     			{
     				// X axis
     				currentState.currentAxis[currentState.currentMachine] = currentAxis_X;
-    				axesRefreshNeeded = 1;
+					axesRefreshNeeded = 1 << allAxes;
     			}
     			else
     			{
@@ -235,7 +235,7 @@ void k_TouchUpdate(void)
     				{
     					// Lathe: only two axes
         				currentState.currentAxis[currentState.currentMachine] = currentAxis_Y;
-        				axesRefreshNeeded = 1;
+						axesRefreshNeeded = 1 << allAxes;
     				}
     				else
     				{
@@ -243,12 +243,12 @@ void k_TouchUpdate(void)
     					if(ts.touchY[0] < 240)
     					{
             				currentState.currentAxis[currentState.currentMachine] = currentAxis_Y;
-            				axesRefreshNeeded = 1;
+    						axesRefreshNeeded = 1 << allAxes;
     					}
     					else
     					{
             				currentState.currentAxis[currentState.currentMachine] = currentAxis_Z;
-            				axesRefreshNeeded = 1;
+    						axesRefreshNeeded = 1 << allAxes;
     					}
     				}
     			}
@@ -262,14 +262,21 @@ void k_TouchUpdate(void)
     				{
 						// Machine toggle
 						currentState.currentMachine = 1 - currentState.currentMachine;
-						axesRefreshNeeded = 1;
+						axesRefreshNeeded = 1 << allAxes;
 						drawCommands();
     				}
     				else
     				{
     					// Back space
     					currentState.editString[strlen(currentState.editString) - 1] = 0;
-    					axesRefreshNeeded = 1;
+        				if(currentState.currentMachine == currentMachine_mill)
+        				{
+        					axesRefreshNeeded |= 1 << (axisMillX + currentState.currentAxis[currentState.currentMachine]);
+        				}
+        				else
+        				{
+        					axesRefreshNeeded |= 1 << (axisLatheX + currentState.currentAxis[currentState.currentMachine]);
+        				}
     				}
     			}
     			else
@@ -280,7 +287,14 @@ void k_TouchUpdate(void)
     					int32_t dv = currentState.axis[currentState.currentAxis[currentState.currentMachine]] + currentState.offset[currentState.currentAxis[currentState.currentMachine]];
     					dv = dv /2;
     					currentState.offset[currentState.currentAxis[currentState.currentMachine]] = dv - currentState.axis[currentState.currentAxis[currentState.currentMachine]];
-    					axesRefreshNeeded = 1;
+        				if(currentState.currentMachine == currentMachine_mill)
+        				{
+        					axesRefreshNeeded |= 1 << (axisMillX + currentState.currentAxis[currentState.currentMachine]);
+        				}
+        				else
+        				{
+        					axesRefreshNeeded |= 1 << (axisLatheX + currentState.currentAxis[currentState.currentMachine]);
+        				}
     				}
     				else
     				{
@@ -350,7 +364,14 @@ void k_TouchUpdate(void)
     					}
     					currentState.entryMode = entryMode_notActive;
 						drawKeypad(GUI_WHITE);
-    					axesRefreshNeeded = 1;
+        				if(currentState.currentMachine == currentMachine_mill)
+        				{
+        					axesRefreshNeeded |= 1 << (axisMillX + currentState.currentAxis[currentState.currentMachine]);
+        				}
+        				else
+        				{
+        					axesRefreshNeeded |= 1 << (axisLatheX + currentState.currentAxis[currentState.currentMachine]);
+        				}
     					drawCommands();
     				}
     			}
@@ -362,6 +383,7 @@ void k_TouchUpdate(void)
     		if(currentState.entryMode != entryMode_active)
 			{
         		currentState.entryMode = entryMode_active;
+        		GUI_ClearRect(5, currentState.currentAxis[currentState.currentMachine] * 115, 530, 100 + (currentState.currentAxis[currentState.currentMachine] * 115));
 				drawKeypad(GUI_RED);
     			drawCommands();
 			}
@@ -455,7 +477,14 @@ void k_TouchUpdate(void)
     				}
     			}
     		}
-    		axesRefreshNeeded = 1;
+			if(currentState.currentMachine == currentMachine_mill)
+			{
+				axesRefreshNeeded |= 1 << (axisMillX + currentState.currentAxis[currentState.currentMachine]);
+			}
+			else
+			{
+				axesRefreshNeeded |= 1 << (axisLatheX + currentState.currentAxis[currentState.currentMachine]);
+			}
     	}
       TS_State.x = ts.touchX[0];
       if(I2C_Address == TS_I2C_ADDRESS)
@@ -484,7 +513,7 @@ void k_TouchUpdate(void)
   }
   if(axesRefreshNeeded != 0)
   {
-	  drawAxes();
+	  drawAxes(axesRefreshNeeded);
   }
 }
 
